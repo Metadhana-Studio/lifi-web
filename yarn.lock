@@ -2133,10 +2133,10 @@
     "@types/yargs" "^16.0.0"
     chalk "^4.0.0"
 
-"@lifinance/types@0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@lifinance/types/-/types-0.4.0.tgz#85ee1f17e21b20aef8f015ac04c6925e4ab2696b"
-  integrity sha512-HH8h6qaBImc/sKRLX9am/DKvIax477SxkABJ9HZ+vHLlClaiI9QaqL3Y5hZKsGkhLw+xfAh6iXsT5zjPoRTFig==
+"@lifinance/types@0.4.3":
+  version "0.4.3"
+  resolved "https://registry.yarnpkg.com/@lifinance/types/-/types-0.4.3.tgz#c72a857a5fb0c6c773fda31b35040080594a231b"
+  integrity sha512-lSjFlhKeumh4ulNNxgtL3FkDgGSW4oOaUoDchtxXMY8HBpqGD8KyBGQ/yGaKRHk74l4rL9fGd3r3qVJwb0n0Fg==
   dependencies:
     ethers "^5.4.7"
 
@@ -6164,24 +6164,6 @@ eslint-plugin-json@^3.1.0:
     vscode-json-languageservice "^4.1.6"
 
 eslint-plugin-jsx-a11y@^6.3.1, eslint-plugin-jsx-a11y@^6.4.1:
-  version "6.5.1"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-jsx-a11y/-/eslint-plugin-jsx-a11y-6.5.1.tgz#cdbf2df901040ca140b6ec14715c988889c2a6d8"
-  integrity sha512-sVCFKX9fllURnXT2JwLN5Qgo24Ug5NF6dxhkmxsMEUZhXRcGg+X3e1JbJ84YePQKBl5E0ZjAH5Q4rkdcGY99+g==
-  dependencies:
-    "@babel/runtime" "^7.16.3"
-    aria-query "^4.2.2"
-    array-includes "^3.1.4"
-    ast-types-flow "^0.0.7"
-    axe-core "^4.3.5"
-    axobject-query "^2.2.0"
-    damerau-levenshtein "^1.0.7"
-    emoji-regex "^9.2.2"
-    has "^1.0.3"
-    jsx-ast-utils "^3.2.1"
-    language-tags "^1.0.5"
-    minimatch "^3.0.4"
-
-eslint-plugin-jsx-a11y@^6.4.1:
   version "6.5.1"
   resolved "https://registry.yarnpkg.com/eslint-plugin-jsx-a11y/-/eslint-plugin-jsx-a11y-6.5.1.tgz#cdbf2df901040ca140b6ec14715c988889c2a6d8"
   integrity sha512-sVCFKX9fllURnXT2JwLN5Qgo24Ug5NF6dxhkmxsMEUZhXRcGg+X3e1JbJ84YePQKBl5E0ZjAH5Q4rkdcGY99+g==

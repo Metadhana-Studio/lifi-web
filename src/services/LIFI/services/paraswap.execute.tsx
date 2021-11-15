@@ -1,14 +1,14 @@
-import { JsonRpcSigner, TransactionResponse } from '@ethersproject/providers'
+import { JsonRpcSigner, TransactionReceipt, TransactionResponse } from '@ethersproject/providers'
 import BigNumber from 'bignumber.js'
 import { constants } from 'ethers'
 
-import { Execution, getChainById, SwapAction, SwapEstimate } from '../../../types'
-import { oneInch } from './1Inch'
+import { Execution, getChainById, SwapAction, SwapEstimate } from '../types'
 import { checkAllowance } from './allowance.execute'
-import notifications, { NotificationType } from '../../notifications'
-import { createAndPushProcess, initStatus, setStatusDone, setStatusFailed } from '../../status'
+import notifications, { NotificationType } from './notifications'
+import { paraswap } from './paraswap'
+import { createAndPushProcess, initStatus, setStatusDone, setStatusFailed } from './status'
 
-export class OneInchExecutionManager {
+export class ParaswapExecutionManager {
   shouldContinue: boolean = true
 
   setShouldContinue = (val: boolean) => {
@@ -29,9 +29,10 @@ export class OneInchExecutionManager {
     // setup
     const fromChain = getChainById(swapAction.chainId)
     const { status, update } = initStatus(updateStatus, initialStatus)
+
     if (!this.shouldContinue) return status
     if (swapAction.token.id !== constants.AddressZero) {
-      const contractAddress = await oneInch.getContractAddress()
+      const contractAddress = await paraswap.getContractAddress(swapAction.chainId)
       await checkAllowance(
         signer,
         fromChain,
@@ -43,11 +44,10 @@ export class OneInchExecutionManager {
       )
     }
 
-    // https://github.com/ethers-io/ethers.js/issues/1435#issuecomment-814963932
-
-    // Swap via 1inch
+    // Swap via Paraswap
     // -> set status
-    const swapProcess = createAndPushProcess('swapProcess', update, status, 'Swap via 1inch')
+    const swapProcess = createAndPushProcess('swapProcess', update, status, 'Swap via Paraswap')
+
     // -> swapping
     if (!this.shouldContinue) return status
     let tx: TransactionResponse
@@ -55,17 +55,14 @@ export class OneInchExecutionManager {
       if (swapProcess.txHash) {
         tx = await signer.provider.getTransaction(swapProcess.txHash)
       } else {
-        const userAddress = await signer.getAddress()
-        const call = await oneInch.buildTransaction(
-          swapAction.chainId,
-          swapAction.token.id,
-          swapAction.toToken.id,
-          srcAmount.toString(),
-          userAddress,
+        const transaction = await paraswap.buildTransaction(
+          swapAction,
+          swapEstimate,
+          srcAmount,
+          srcAddress,
           destAddress,
-          swapAction.slippage,
         )
-        tx = await signer.sendTransaction(call)
+        tx = await signer.sendTransaction(transaction)
       }
     } catch (e: any) {
       // -> set status
@@ -79,7 +76,7 @@ export class OneInchExecutionManager {
     swapProcess.status = 'PENDING'
     swapProcess.txHash = tx.hash
     swapProcess.txLink = fromChain.metamask.blockExplorerUrls[0] + 'tx/' + swapProcess.txHash
-    swapProcess.message = 'Swap via paraswap - Wait for'
+    swapProcess.message = 'Swap via Paraswap - Wait for'
     update(status)
 
     // -> waiting
@@ -96,13 +93,23 @@ export class OneInchExecutionManager {
     }
 
     // -> set status
-    const parsedReceipt = oneInch.parseReceipt(tx, receipt)
     swapProcess.message = 'Swapped:'
+    const parsedReceipt = paraswap.parseReceipt(
+      tx as TransactionResponse,
+      receipt as TransactionReceipt,
+    )
+    setStatusDone(update, status, swapProcess, {
+      fromAmount: parsedReceipt.fromAmount,
+      toAmount: parsedReceipt.toAmount,
+      gasUsed: (status.gasUsed || 0) + parsedReceipt.gasUsed,
+    })
+
+    // -> set status
     status.fromAmount = parsedReceipt.fromAmount
     status.toAmount = parsedReceipt.toAmount
     status.gasUsed = (status.gasUsed || 0) + parsedReceipt.gasUsed
     status.status = 'DONE'
-    setStatusDone(update, status, swapProcess)
+    update(status)
     notifications.showNotification(NotificationType.SWAP_SUCCESSFUL)
 
     // DONE

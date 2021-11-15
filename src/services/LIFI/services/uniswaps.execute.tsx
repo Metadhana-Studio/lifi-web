@@ -1,25 +1,22 @@
-import { JsonRpcSigner, TransactionResponse } from '@ethersproject/providers'
-import BigNumber from 'bignumber.js'
+import { JsonRpcSigner } from '@ethersproject/providers'
 import { constants } from 'ethers'
 
-import { Execution, getChainById, SwapAction, SwapEstimate } from '../../../types'
-import { oneInch } from './1Inch'
+import { Execution, getChainById, SwapAction, SwapEstimate } from '@lifinance/types'
 import { checkAllowance } from './allowance.execute'
 import notifications, { NotificationType } from '../../notifications'
 import { createAndPushProcess, initStatus, setStatusDone, setStatusFailed } from '../../status'
+import * as uniswap from './uniswaps'
 
-export class OneInchExecutionManager {
+export class UniswapExecutionManager {
   shouldContinue: boolean = true
 
   setShouldContinue = (val: boolean) => {
     this.shouldContinue = val
   }
-
   executeSwap = async (
     signer: JsonRpcSigner,
     swapAction: SwapAction,
     swapEstimate: SwapEstimate,
-    srcAmount: BigNumber,
     srcAddress: string,
     destAddress: string,
     updateStatus?: Function,
@@ -29,42 +26,34 @@ export class OneInchExecutionManager {
     // setup
     const fromChain = getChainById(swapAction.chainId)
     const { status, update } = initStatus(updateStatus, initialStatus)
+
     if (!this.shouldContinue) return status
     if (swapAction.token.id !== constants.AddressZero) {
-      const contractAddress = await oneInch.getContractAddress()
       await checkAllowance(
         signer,
         fromChain,
         swapAction.token,
         swapAction.amount,
-        contractAddress,
+        swapEstimate.data.routerAddress,
         update,
         status,
       )
     }
 
-    // https://github.com/ethers-io/ethers.js/issues/1435#issuecomment-814963932
-
-    // Swap via 1inch
+    // Swap via Uniswap
     // -> set status
-    const swapProcess = createAndPushProcess('swapProcess', update, status, 'Swap via 1inch')
+    const swapProcess = createAndPushProcess('swapProcess', update, status, 'Submit Swap', {
+      status: 'ACTION_REQUIRED',
+    })
+
     // -> swapping
     if (!this.shouldContinue) return status
-    let tx: TransactionResponse
+    let tx
     try {
       if (swapProcess.txHash) {
         tx = await signer.provider.getTransaction(swapProcess.txHash)
       } else {
-        const userAddress = await signer.getAddress()
-        const call = await oneInch.buildTransaction(
-          swapAction.chainId,
-          swapAction.token.id,
-          swapAction.toToken.id,
-          srcAmount.toString(),
-          userAddress,
-          destAddress,
-          swapAction.slippage,
-        )
+        const call = await uniswap.getSwapCall(swapAction, swapEstimate, srcAddress, destAddress)
         tx = await signer.sendTransaction(call)
       }
     } catch (e: any) {
@@ -79,12 +68,13 @@ export class OneInchExecutionManager {
     swapProcess.status = 'PENDING'
     swapProcess.txHash = tx.hash
     swapProcess.txLink = fromChain.metamask.blockExplorerUrls[0] + 'tx/' + swapProcess.txHash
-    swapProcess.message = 'Swap via paraswap - Wait for'
+    swapProcess.message = 'Swap - Wait for'
     update(status)
 
     // -> waiting
     let receipt
     try {
+      tx = await signer.provider.getTransaction(swapProcess.txHash)
       receipt = await signer.provider.waitForTransaction(swapProcess.txHash)
     } catch (e: any) {
       // -> set status
@@ -96,13 +86,20 @@ export class OneInchExecutionManager {
     }
 
     // -> set status
-    const parsedReceipt = oneInch.parseReceipt(tx, receipt)
     swapProcess.message = 'Swapped:'
+    const parsedReceipt = uniswap.parseReceipt(tx, receipt)
+    setStatusDone(update, status, swapProcess, {
+      fromAmount: parsedReceipt.fromAmount,
+      toAmount: parsedReceipt.toAmount,
+      gasUsed: (status.gasUsed || 0) + parsedReceipt.gasUsed,
+    })
+
+    // -> set status
     status.fromAmount = parsedReceipt.fromAmount
     status.toAmount = parsedReceipt.toAmount
     status.gasUsed = (status.gasUsed || 0) + parsedReceipt.gasUsed
     status.status = 'DONE'
-    setStatusDone(update, status, swapProcess)
+    update(status)
     notifications.showNotification(NotificationType.SWAP_SUCCESSFUL)
 
     // DONE
