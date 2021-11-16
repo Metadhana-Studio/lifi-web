@@ -2,11 +2,10 @@ import { JsonRpcSigner, TransactionResponse } from '@ethersproject/providers'
 import BigNumber from 'bignumber.js'
 import { constants } from 'ethers'
 
-import { Execution, getChainById, SwapAction, SwapEstimate } from '../../../types'
+import { Action, Estimate, Execution, getChainById } from '@lifinance/types'
 import { oneInch } from './1Inch'
 import { checkAllowance } from './allowance.execute'
-import notifications, { NotificationType } from '../../notifications'
-import { createAndPushProcess, initStatus, setStatusDone, setStatusFailed } from '../../status'
+import { createAndPushProcess, initStatus, setStatusDone, setStatusFailed } from './status'
 
 export class OneInchExecutionManager {
   shouldContinue: boolean = true
@@ -17,8 +16,8 @@ export class OneInchExecutionManager {
 
   executeSwap = async (
     signer: JsonRpcSigner,
-    swapAction: SwapAction,
-    swapEstimate: SwapEstimate,
+    action: Action,
+    estimate: Estimate,
     srcAmount: BigNumber,
     srcAddress: string,
     destAddress: string,
@@ -27,16 +26,16 @@ export class OneInchExecutionManager {
     // eslint-disable-next-line max-params
   ) => {
     // setup
-    const fromChain = getChainById(swapAction.chainId)
+    const fromChain = getChainById(action.fromChainId)
     const { status, update } = initStatus(updateStatus, initialStatus)
     if (!this.shouldContinue) return status
-    if (swapAction.token.id !== constants.AddressZero) {
+    if (action.fromToken.id !== constants.AddressZero) {
       const contractAddress = await oneInch.getContractAddress()
       await checkAllowance(
         signer,
         fromChain,
-        swapAction.token,
-        swapAction.amount,
+        action.fromToken,
+        srcAmount.toString(),
         contractAddress,
         update,
         status,
@@ -57,13 +56,13 @@ export class OneInchExecutionManager {
       } else {
         const userAddress = await signer.getAddress()
         const call = await oneInch.buildTransaction(
-          swapAction.chainId,
-          swapAction.token.id,
-          swapAction.toToken.id,
+          action.fromChainId,
+          action.fromToken.id,
+          action.toToken.id,
           srcAmount.toString(),
           userAddress,
           destAddress,
-          swapAction.slippage,
+          action.slippage,
         )
         tx = await signer.sendTransaction(call)
       }
@@ -91,7 +90,6 @@ export class OneInchExecutionManager {
       if (e.message) swapProcess.errorMessage = e.message
       if (e.code) swapProcess.errorCode = e.code
       setStatusFailed(update, status, swapProcess)
-      notifications.showNotification(NotificationType.SWAP_ERROR)
       throw e
     }
 
@@ -103,7 +101,6 @@ export class OneInchExecutionManager {
     status.gasUsed = (status.gasUsed || 0) + parsedReceipt.gasUsed
     status.status = 'DONE'
     setStatusDone(update, status, swapProcess)
-    notifications.showNotification(NotificationType.SWAP_SUCCESSFUL)
 
     // DONE
     return status

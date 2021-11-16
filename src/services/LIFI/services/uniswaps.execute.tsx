@@ -1,10 +1,10 @@
 import { JsonRpcSigner } from '@ethersproject/providers'
+import BigNumber from 'bignumber.js'
 import { constants } from 'ethers'
 
-import { Execution, getChainById, SwapAction, SwapEstimate } from '@lifinance/types'
+import { Action, Estimate, Execution, getChainById } from '@lifinance/types'
 import { checkAllowance } from './allowance.execute'
-import notifications, { NotificationType } from '../../notifications'
-import { createAndPushProcess, initStatus, setStatusDone, setStatusFailed } from '../../status'
+import { createAndPushProcess, initStatus, setStatusDone, setStatusFailed } from './status'
 import * as uniswap from './uniswaps'
 
 export class UniswapExecutionManager {
@@ -15,8 +15,9 @@ export class UniswapExecutionManager {
   }
   executeSwap = async (
     signer: JsonRpcSigner,
-    swapAction: SwapAction,
-    swapEstimate: SwapEstimate,
+    action: Action,
+    estimate: Estimate,
+    srcAmount: BigNumber,
     srcAddress: string,
     destAddress: string,
     updateStatus?: Function,
@@ -24,17 +25,17 @@ export class UniswapExecutionManager {
     // eslint-disable-next-line max-params
   ) => {
     // setup
-    const fromChain = getChainById(swapAction.chainId)
+    const fromChain = getChainById(action.fromChainId)
     const { status, update } = initStatus(updateStatus, initialStatus)
 
     if (!this.shouldContinue) return status
-    if (swapAction.token.id !== constants.AddressZero) {
+    if (action.fromToken.id !== constants.AddressZero) {
       await checkAllowance(
         signer,
         fromChain,
-        swapAction.token,
-        swapAction.amount,
-        swapEstimate.data.routerAddress,
+        action.fromToken,
+        srcAmount.toString(),
+        estimate.data.routerAddress,
         update,
         status,
       )
@@ -53,7 +54,7 @@ export class UniswapExecutionManager {
       if (swapProcess.txHash) {
         tx = await signer.provider.getTransaction(swapProcess.txHash)
       } else {
-        const call = await uniswap.getSwapCall(swapAction, swapEstimate, srcAddress, destAddress)
+        const call = await uniswap.getSwapCall(action, estimate, srcAddress, destAddress)
         tx = await signer.sendTransaction(call)
       }
     } catch (e: any) {
@@ -81,7 +82,6 @@ export class UniswapExecutionManager {
       if (e.message) swapProcess.errorMessage = e.message
       if (e.code) swapProcess.errorCode = e.code
       setStatusFailed(update, status, swapProcess)
-      notifications.showNotification(NotificationType.SWAP_ERROR)
       throw e
     }
 
@@ -100,7 +100,6 @@ export class UniswapExecutionManager {
     status.gasUsed = (status.gasUsed || 0) + parsedReceipt.gasUsed
     status.status = 'DONE'
     update(status)
-    notifications.showNotification(NotificationType.SWAP_SUCCESSFUL)
 
     // DONE
     return status

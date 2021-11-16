@@ -1,78 +1,66 @@
 import { JsonRpcSigner } from '@ethersproject/providers'
-import {
-  DepositAction,
-  Step,
-  Route,
-  WithdrawAction,
-  CrossAction,
-  SwapAction,
-  SwapEstimate,
-  Execution,
-} from '@lifinance/types'
+import { Execution, Route, RoutesRequest, RoutesResponse, Step } from '@lifinance/types'
 import axios from 'axios'
 import BigNumber from 'bignumber.js'
 import { Signer } from 'ethers'
+import { ParaswapExecutionManager } from './services/paraswap.execute'
+import { OneInchExecutionManager } from './services/1inch.execute'
 import { UniswapExecutionManager } from './services/uniswaps.execute'
 
-import { isDeposit, isWithdraw } from './typeguards'
+import { isRoutesRequest } from './typeguards'
 
 class LIFI {
-  findRoutes = async (deposit: DepositAction, withdraw: WithdrawAction): Promise<Step[][]> => {
-    if (!isDeposit(deposit)) {
-      throw Error('Invalid Deposit Type')
+  getRoutes = async (routesRequest: RoutesRequest): Promise<RoutesResponse> => {
+    if (!isRoutesRequest(routesRequest)) {
+      throw Error('Invalid routes request')
     }
-    if (!isWithdraw(withdraw)) {
-      throw Error('Invalid Withdraw Type')
-    }
-    const result = await axios.post<Step[][]>(process.env.REACT_APP_API_URL + 'transfer', {
-      deposit,
-      withdraw,
-    })
+
+    const result = await axios.post<RoutesResponse>(
+      process.env.REACT_APP_API_URL + 'routes',
+      routesRequest,
+    )
+
     return result.data
   }
 
   // original parameters Signer, Route
-  executeRoute = (signer: Signer, route: Route) /*:Promise<Step[]>*/ => {
-    for (const step of route.steps) {
-    }
-  }
+  executeRoute = (signer: Signer, route: Route) /*:Promise<Step[]>*/ => {}
 
-  private triggerSwap = async (signer: JsonRpcSigner, step: Step, previousStep?: Step) => {
-    const swapAction = step.action as SwapAction
-    const swapEstimate = step.estimate as SwapEstimate
-    const swapExecution = step.execution as Execution
-    const fromAddress = signer._address
-    const toAddress = fromAddress
+  // private triggerSwap = async (signer: JsonRpcSigner, step: Step, previousStep?: Step) => {
+  //   const fromAddress = signer._address
+  //   const toAddress = fromAddress
 
-    // get right amount
-    let fromAmount: BigNumber
-    if (previousStep && previousStep.execution && previousStep.execution.toAmount) {
-      fromAmount = new BigNumber(previousStep.execution.toAmount)
-    } else {
-      fromAmount = new BigNumber(swapAction.amount)
-    }
-    let executionManager
-    // ensure chain is set
-    switch (swapAction.tool) {
-      case 'paraswap':
+  //   // get right amount
+  //   let fromAmount: BigNumber
+  //   if (previousStep && previousStep.execution && previousStep.execution.toAmount) {
+  //     fromAmount = new BigNumber(previousStep.execution.toAmount)
+  //   } else {
+  //     fromAmount = new BigNumber(step.action.fromAmount)
+  //   }
+  //   let executionManager
+  //   // ensure chain is set
+  //   switch (step.tool) {
+  //     case 'paraswap':
+  //       executionManager = new ParaswapExecutionManager()
+  //       break
+  //     case '1inch':
+  //       executionManager = new OneInchExecutionManager()
+  //       break
+  //     default:
+  //       executionManager = new UniswapExecutionManager()
+  //   }
 
-      case '1inch':
-
-      default:
-        executionManager = new UniswapExecutionManager()
-    }
-
-    return await executionManager.executeSwap(
-      signer,
-      swapAction,
-      swapEstimate,
-      fromAmount,
-      fromAddress,
-      toAddress,
-      (status: Execution) => updateStatus(step, status),
-      swapExecution,
-    )
-  }
+  //   return await executionManager.executeSwap(
+  //     signer,
+  //     step.action,
+  //     step.estimate,
+  //     fromAmount,
+  //     fromAddress,
+  //     toAddress,
+  //     (status: Execution) => updateStatus(step, status),
+  //     step.execution,
+  //   )
+  // }
 
   // getCurrentStatus = (route: Route): Route => {
 

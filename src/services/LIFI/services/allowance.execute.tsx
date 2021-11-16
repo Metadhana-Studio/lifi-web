@@ -1,7 +1,7 @@
 import { JsonRpcSigner } from '@ethersproject/providers'
 import BigNumber from 'bignumber.js'
 
-import { Chain, Execution, Token } from '../types'
+import { Chain, Execution, Token } from '@lifinance/types'
 import { createAndPushProcess, setStatusDone, setStatusFailed } from './status'
 import { getApproved, setApproval } from './utils'
 
