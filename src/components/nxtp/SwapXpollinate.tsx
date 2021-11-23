@@ -840,11 +840,13 @@ const SwapXpollinate = ({
     ) => {
       setRoutesLoading(true)
 
-      const dryRun = new BigNumber(depositAmount).gt(
-        getBalance(depositChain, depositToken).shiftedBy(
-          findToken(depositChain, depositToken).decimals,
-        ),
-      )
+      // TODO: Should fire off dry run if the sending amount > balance. Need to prevent state from treating this as
+      // a valid 'swappable' quote, however.
+      // const dryRun = new BigNumber(depositAmount).gt(
+      //   getBalance(depositChain, depositToken).shiftedBy(
+      //     findToken(depositChain, depositToken).decimals,
+      //   ),
+      // )
       try {
         const quote = await getTransferQuote(
           sdk!,
@@ -858,7 +860,6 @@ const SwapXpollinate = ({
           callData,
           undefined,
           preferredRouters,
-          dryRun,
         )
 
         if (!quote) {
