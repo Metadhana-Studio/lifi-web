@@ -19,6 +19,18 @@ export const defaultTokens: { [ChainKey: string]: Array<Token> } = {
       name: 'MAGIC',
       symbol: 'MAGIC',
     },
+
+    // ADDED TOKEN FOR MARKETING PURPOSES
+    // > LOOKS: https://etherscan.io/token/0xf4d2888d29D722226FafA5d9B24F9164c092421E
+    {
+      address: '0xf4d2888d29D722226FafA5d9B24F9164c092421E',
+      chainId: ChainId.ETH,
+      decimals: 18,
+      logoURI: 'https://etherscan.io/token/images/looksrare_32.png',
+      name: 'LooksRare',
+      symbol: 'LOOKS',
+    },
+
     // > METIS: https://etherscan.io/token/0x9e32b13ce7f2e80a01932b42553652e053d6ed8e
     {
       address: '0x9e32b13ce7f2e80a01932b42553652e053d6ed8e',
@@ -119,6 +131,17 @@ export const defaultTokens: { [ChainKey: string]: Array<Token> } = {
     findDefaultToken(CoinKey.USDT, ChainId.FTM),
     findDefaultToken(CoinKey.DAI, ChainId.FTM),
     findDefaultToken(CoinKey.WBTC, ChainId.FTM),
+
+    //For marketing 0xDAO token
+    {
+      address: '0xc165d941481e68696f43ee6e99bfb2b23e0e3114',
+      chainId: ChainId.FTM,
+      decimals: 18,
+      logoURI:
+        ' https://assets.coingecko.com/coins/images/22888/small/rjks-OoT_400x400.jpg?1642827011 ',
+      name: '0xDAO',
+      symbol: 'OXD',
+    },
   ],
   [ChainKey.ARB]: [
     findDefaultToken(CoinKey.ETH, ChainId.ARB),
@@ -158,6 +181,17 @@ export const defaultTokens: { [ChainKey: string]: Array<Token> } = {
     findDefaultToken(CoinKey.USDT, ChainId.AVA),
     findDefaultToken(CoinKey.DAI, ChainId.AVA),
     findDefaultToken(CoinKey.WBTC, ChainId.AVA),
+
+    // ADDED TOKEN FOR MARKETING PURPOSES
+    // > Defrost Finance Token: https://snowtrace.io/token/0x47EB6F7525C1aA999FBC9ee92715F5231eB1241D
+    {
+      address: '0x47EB6F7525C1aA999FBC9ee92715F5231eB1241D',
+      chainId: ChainId.AVA,
+      decimals: 18,
+      logoURI: 'https://snowtrace.io/token/images/defrostfinance_32.png',
+      name: 'Defrost Finance Token',
+      symbol: 'MELT',
+    },
   ],
   [ChainKey.MOR]: [
     findDefaultToken(CoinKey.MOVR, ChainId.MOR),
